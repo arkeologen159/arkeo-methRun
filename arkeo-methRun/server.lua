@@ -1,3 +1,8 @@
+-- TO DO'S
+-- Turn cooldown into function
+-- event wrap notifications
+-- compact the callback
+
 local methRunActive = false
 local cooldownActive = false
 local activeTrackers = {}
