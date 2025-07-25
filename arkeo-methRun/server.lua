@@ -1,5 +1,6 @@
 local methRunActive = false
 local cooldownActive = false
+local activeTrackers = {}
 
 RegisterNetEvent('arkeo-methRun:canSpawnVehicle', function()
     local src = source
@@ -40,6 +41,7 @@ RegisterNetEvent('arkeo-methRun:deliverMeth', function()
     TriggerClientEvent('arkeo-methRun:endMission', src)
 
     methRunActive = false
+    activeTrackers[plate] = nil
     TriggerEvent('qb-scoreboard:server:SetActivityBusy', 'methRun', false)
     SetTimeout(Config.Cooldown or 5400000, function()
         cooldownActive = false
@@ -51,4 +53,17 @@ lib.callback.register('arkeo-methRun:canStart', function(source)
         return false, 'A meth run is already active or on cooldown.'
     end
     return true
+end)
+
+RegisterNetEvent('arkeo-methRun:removeTracker', function(plate)
+    if not plate then return end
+    if not activeTrackers[plate] then
+        activeTrackers[plate] = Config.TotalTrackers or 7
+    end
+    activeTrackers[plate] = activeTrackers[plate] - 1
+    print("tracker removed")
+    if activeTrackers[plate] < 0 then activeTrackers[plate] = 0 end
+    for _, playerId in pairs(GetPlayers()) do
+        TriggerClientEvent('arkeo-methRun:syncTrackers', playerId, plate, activeTrackers[plate])
+    end
 end)

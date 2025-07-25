@@ -51,26 +51,28 @@ exports('UseMethLaptop', function(data, slot)
         lib.notify({title = 'Meth Run', description = "You must wait before trying another hack!", type = 'error'})
         return
     end
-
     hackCooldown = true
-    exports['arkeo-hack']:StartHack('Pcb', 'medium', function(success)
-        if success then
-            trackersLeft = trackersLeft - 1
-            TriggerServerEvent('arkeo-methRun:removeTracker', missionVehiclePlate)
-            exports['arkeo-ui']:ShowMissionCard("Meth Run", ("Disable all vehicle trackers: %d/%d disabled"):format((Config.TotalTrackers or 7) - trackersLeft, Config.TotalTrackers or 7))
-            if trackersLeft <= 0 then
-                exports['arkeo-ui']:ShowMissionCard("Meth Run", "All trackers disabled! Lose the cops and deliver the vehicle.")
-            end
-        else
-            lib.notify({title = 'Meth Run', description = "Hack failed! Try again in 1 minute.", type = 'error'})
+    local success = exports['arkeo-hack']:StartHack('Pcb', 'easy') -- change to Packet or Decrypt | easy, medium, hard
+    if success then
+        TriggerServerEvent('arkeo-methRun:removeTracker', missionVehiclePlate)
+        exports['arkeo-ui']:ShowMissionCard("Meth Run", ("Disable all vehicle trackers: %d/%d disabled"):format((Config.TotalTrackers or 7) - trackersLeft, Config.TotalTrackers or 7))
+        if trackersLeft <= 0 then
+            exports['arkeo-ui']:ShowMissionCard("Meth Run", "All trackers disabled! Lose the cops and deliver the vehicle.")
         end
-        SetTimeout((Config.HackCooldown or 60000), function()
-            hackCooldown = false
-        end)
+    else
+        lib.notify({title = 'Meth Run', description = "Hack failed! Try again in 30 seconds.", type = 'error'})
+    end
+    Citizen.SetTimeout((Config.HackCooldown or 30000), function()
+        hackCooldown = false
+        lib.notify({title = 'Meth Run', description = "You can now try hacking again.", type = 'info'})
     end)
 end)
 
-
+RegisterNetEvent('arkeo-methRun:syncTrackers', function(plate, newCount)
+    if missionVehiclePlate and plate and missionVehiclePlate == plate then
+        trackersLeft = newCount
+    end
+end)
 
 RegisterNetEvent('arkeo-methRun:startMission', function()
     if missionActive then return end
@@ -117,10 +119,8 @@ RegisterNetEvent('arkeo-methRun:createVehicle', function(model, coords)
     spawnedVehicle = veh
     missionVehiclePlate = plate
     if vehicleBlip then RemoveBlip(vehicleBlip) vehicleBlip = nil end
-
     trackersLeft = Config.TotalTrackers or 7
     hackCooldown = false
-
     exports.ox_target:addGlobalVehicle({
         {
             name = 'methrun_package',
@@ -148,7 +148,6 @@ RegisterNetEvent('arkeo-methRun:createVehicle', function(model, coords)
         }
     })
 end)
-
 RegisterNetEvent('arkeo-methRun:showNextMission', function()
     exports['arkeo-ui']:HideMissionCard()
     exports['arkeo-ui']:ShowMissionCard(Config.Mission.DeliverMissionTitle, Config.Mission.DeliverMissionMsg)
@@ -164,7 +163,6 @@ RegisterNetEvent('arkeo-methRun:showDepositBlip', function()
     BeginTextCommandSetBlipName("STRING")
     AddTextComponentString("Meth Drop-off")
     EndTextCommandSetBlipName(depositBlip)
-
     CreateThread(function()
         while missionActive and spawnedVehicle do
             local vehicleCoords = GetEntityCoords(spawnedVehicle)
